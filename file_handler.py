@@ -6,6 +6,7 @@ Handles file downloads from Telegram and Google Drive
 import os
 import logging
 import re
+import subprocess
 from typing import Optional
 import aiohttp
 
@@ -106,7 +107,6 @@ class FileHandler:
         """Detect file type and rename with proper extension"""
         try:
             # Try to detect file type using file command (if available)
-            import subprocess
             result = subprocess.run(
                 ['file', '--mime-type', '-b', file_path],
                 capture_output=True,

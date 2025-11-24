@@ -153,7 +153,7 @@ async def add_gdrive_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     try:
         file_path = await file_handler.download_from_gdrive(gdrive_link)
         chat_id = update.effective_chat.id
-        await stream_manager.add_file(chat_id, file_path)
+        stream_manager.add_file(chat_id, file_path)
         await update.message.reply_text(
             f"✅ File downloaded and added to library!\n"
             f"Use /stream to start streaming."
@@ -315,7 +315,7 @@ async def handle_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         
         # Add to stream manager
         chat_id = update.effective_chat.id
-        await stream_manager.add_file(chat_id, file_path)
+        stream_manager.add_file(chat_id, file_path)
         
         await update.message.reply_text(
             f"✅ File uploaded successfully!\n"

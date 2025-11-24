@@ -7,6 +7,7 @@ import os
 import asyncio
 import logging
 import time
+import tempfile
 from typing import Dict, List, Optional
 from datetime import datetime
 import subprocess
@@ -80,6 +81,14 @@ class StreamManager:
         resolution = os.getenv('VIDEO_RESOLUTION', '1920x1080')
         fps = os.getenv('FPS', '30')
         
+        # Parse video bitrate (handle formats like "2500k" or "2500")
+        try:
+            bitrate_value = int(video_bitrate.rstrip('kK'))
+            bufsize = f"{bitrate_value * 2}k"
+        except (ValueError, AttributeError):
+            logger.warning(f"Invalid VIDEO_BITRATE format: {video_bitrate}, using default bufsize")
+            bufsize = "5000k"
+        
         try:
             # Create FFmpeg command for looping and streaming
             # Use concat demuxer for smooth looping
@@ -96,7 +105,7 @@ class StreamManager:
                 '-preset', 'veryfast',  # Encoding preset
                 '-b:v', video_bitrate,  # Video bitrate
                 '-maxrate', video_bitrate,
-                '-bufsize', str(int(video_bitrate.replace('k', '')) * 2) + 'k',
+                '-bufsize', bufsize,
                 '-s', resolution,  # Resolution
                 '-r', fps,  # Frame rate
                 '-g', str(int(fps) * 2),  # GOP size
@@ -185,7 +194,7 @@ class StreamManager:
     
     def _create_concat_file(self, chat_id: int, files: List[str]) -> str:
         """Create a concat file for FFmpeg"""
-        concat_file = f"/tmp/concat_{chat_id}.txt"
+        concat_file = os.path.join(tempfile.gettempdir(), f"concat_{chat_id}.txt")
         
         with open(concat_file, 'w') as f:
             for file_path in files:
