@@ -81,14 +81,14 @@ echo ""
 
 # Check if tokens are configured
 echo "🔍 Checking configuration..."
-source .env
 
-if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ "$TELEGRAM_BOT_TOKEN" = "your_telegram_bot_token_here" ]; then
+# Simple check without sourcing - just verify .env exists and has required vars
+if ! grep -q "TELEGRAM_BOT_TOKEN=" .env || grep -q "TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here" .env; then
     echo "⚠️  TELEGRAM_BOT_TOKEN is not configured in .env"
     exit 1
 fi
 
-if [ -z "$YOUTUBE_STREAM_KEY" ] || [ "$YOUTUBE_STREAM_KEY" = "your_youtube_stream_key_here" ]; then
+if ! grep -q "YOUTUBE_STREAM_KEY=" .env || grep -q "YOUTUBE_STREAM_KEY=your_youtube_stream_key_here" .env; then
     echo "⚠️  YOUTUBE_STREAM_KEY is not configured in .env"
     exit 1
 fi
