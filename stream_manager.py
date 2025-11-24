@@ -159,8 +159,8 @@ class StreamManager:
                 self.processes.pop(chat_id, None)
                 self.streams.pop(chat_id, None)
                 
-                # Clean up concat file
-                concat_file = f"/tmp/concat_{chat_id}.txt"
+                # Clean up concat file (cross-platform)
+                concat_file = os.path.join(tempfile.gettempdir(), f"concat_{chat_id}.txt")
                 if os.path.exists(concat_file):
                     os.remove(concat_file)
     
