@@ -1,0 +1,65 @@
+{
+  "name": "24-7-youtube-music-live-bot",
+  "description": "A 24/7 YouTube Music Live Bot for Telegram",
+  "keywords": ["telegram", "bot", "youtube", "live", "streaming"],
+  "website": "https://github.com/inyogeshwar/24-7YouTubeMusicLiveBot",
+  "repository": "https://github.com/inyogeshwar/24-7YouTubeMusicLiveBot",
+  "buildpacks": [
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "env": {
+    "TELEGRAM_BOT_TOKEN": {
+      "description": "Your Telegram Bot Token from @BotFather",
+      "required": true
+    },
+    "YOUTUBE_STREAM_KEY": {
+      "description": "Your YouTube Live Stream Key from YouTube Studio",
+      "required": true
+    },
+    "YOUTUBE_RTMP_URL": {
+      "description": "YouTube RTMP URL",
+      "value": "rtmp://a.rtmp.youtube.com/live2/",
+      "required": false
+    },
+    "VIDEO_BITRATE": {
+      "description": "Video bitrate for streaming",
+      "value": "2500k",
+      "required": false
+    },
+    "AUDIO_BITRATE": {
+      "description": "Audio bitrate for streaming",
+      "value": "128k",
+      "required": false
+    },
+    "VIDEO_RESOLUTION": {
+      "description": "Video resolution",
+      "value": "1920x1080",
+      "required": false
+    },
+    "FPS": {
+      "description": "Frames per second",
+      "value": "30",
+      "required": false
+    },
+    "ADMIN_USER_IDS": {
+      "description": "Comma-separated list of admin Telegram user IDs",
+      "required": false
+    },
+    "STORAGE_PATH": {
+      "description": "Path for storing uploaded files",
+      "value": "./storage/",
+      "required": false
+    }
+  }
+}
