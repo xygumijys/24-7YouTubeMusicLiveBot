@@ -6,6 +6,8 @@ Main bot application for streaming music/video to YouTube Live 24/7
 
 import os
 import logging
+import asyncio
+from datetime import datetime
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -14,6 +16,7 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
+from aiohttp import web
 from dotenv import load_dotenv
 
 from stream_manager import StreamManager
@@ -28,6 +31,9 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+# Global start time for uptime tracking
+START_TIME = datetime.now()
 
 # Global stream manager
 stream_manager = StreamManager()
@@ -682,6 +688,55 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.error(f"Exception while handling an update: {context.error}")
 
 
+# =============================================================================
+# Web Server for Keep-Alive (Uptime Monitoring)
+# =============================================================================
+
+async def health_check(request: web.Request) -> web.Response:
+    """Health check endpoint for uptime monitoring"""
+    uptime = datetime.now() - START_TIME
+    hours, remainder = divmod(int(uptime.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    
+    return web.json_response({
+        'status': 'healthy',
+        'uptime': f'{hours}h {minutes}m {seconds}s',
+        'message': '24/7 YouTube Music Live Bot is running!'
+    })
+
+
+async def ping(request: web.Request) -> web.Response:
+    """Simple ping endpoint for keep-alive services"""
+    return web.Response(text='pong')
+
+
+async def root(request: web.Request) -> web.Response:
+    """Root endpoint with basic info"""
+    return web.Response(
+        text='🎵 24/7 YouTube Music Live Bot is running!\n'
+             'Use /health for status or /ping for keep-alive.',
+        content_type='text/plain'
+    )
+
+
+async def run_web_server() -> None:
+    """Start the web server for uptime monitoring"""
+    port = int(os.getenv('PORT', os.getenv('WEB_PORT', '8080')))
+    
+    app = web.Application()
+    app.router.add_get('/', root)
+    app.router.add_get('/health', health_check)
+    app.router.add_get('/ping', ping)
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    
+    logger.info(f"Web server started on port {port} for uptime monitoring")
+    logger.info(f"Health check available at http://0.0.0.0:{port}/health")
+
+
 def main() -> None:
     """Start the bot"""
     token = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -726,6 +781,13 @@ def main() -> None:
     
     # Add error handler
     application.add_error_handler(error_handler)
+    
+    # Start web server for uptime monitoring (in the bot's event loop)
+    async def post_init(app: Application) -> None:
+        """Start web server after bot initialization"""
+        await run_web_server()
+    
+    application.post_init = post_init
     
     # Start the bot
     logger.info("Bot started successfully!")
