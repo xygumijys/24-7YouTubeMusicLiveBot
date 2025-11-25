@@ -1,0 +1,27 @@
+services:
+  - type: worker
+    name: youtube-live-bot
+    runtime: python
+    buildCommand: bash install.sh
+    startCommand: python bot.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: YOUTUBE_STREAM_KEY
+        sync: false
+      - key: YOUTUBE_RTMP_URL
+        value: rtmp://a.rtmp.youtube.com/live2/
+      - key: VIDEO_BITRATE
+        value: 2500k
+      - key: AUDIO_BITRATE
+        value: 128k
+      - key: VIDEO_RESOLUTION
+        value: 1920x1080
+      - key: FPS
+        value: "30"
+      - key: STORAGE_PATH
+        value: /tmp/storage/
+      - key: ADMIN_USER_IDS
+        value: ""
+      - key: PYTHONUNBUFFERED
+        value: "1"
