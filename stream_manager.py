@@ -6,7 +6,6 @@ Handles YouTube Live streaming with FFmpeg
 import os
 import asyncio
 import logging
-import time
 import tempfile
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -22,6 +21,9 @@ class StreamManager:
         self.streams: Dict[int, Dict] = {}  # chat_id -> stream info
         self.files: Dict[int, List[str]] = {}  # chat_id -> list of file paths
         self.processes: Dict[int, subprocess.Popen] = {}  # chat_id -> FFmpeg process
+        self.stream_keys: Dict[int, str] = {}  # chat_id -> YouTube stream key
+        self.rtmp_urls: Dict[int, str] = {}  # chat_id -> RTMP URL
+        self._restart_requested: Dict[int, bool] = {}  # chat_id -> restart flag for live switching
         
     def add_file(self, chat_id: int, file_path: str) -> None:
         """Add a file to the chat's library"""
@@ -54,7 +56,99 @@ class StreamManager:
         
         return False
     
-    async def start_stream(self, chat_id: int) -> bool:
+    def set_stream_key(self, chat_id: int, stream_key: str) -> None:
+        """Set YouTube stream key for a chat"""
+        self.stream_keys[chat_id] = stream_key
+        logger.info(f"Stream key set for chat {chat_id}")
+    
+    def get_stream_key(self, chat_id: int) -> Optional[str]:
+        """Get YouTube stream key for a chat"""
+        # First check per-chat key, then fall back to environment variable
+        return self.stream_keys.get(chat_id) or os.getenv('YOUTUBE_STREAM_KEY')
+    
+    def set_rtmp_url(self, chat_id: int, rtmp_url: str) -> None:
+        """Set custom RTMP URL for a chat"""
+        self.rtmp_urls[chat_id] = rtmp_url
+        logger.info(f"RTMP URL set for chat {chat_id}")
+    
+    def get_rtmp_url(self, chat_id: int) -> str:
+        """Get RTMP URL for a chat"""
+        return self.rtmp_urls.get(chat_id) or os.getenv('YOUTUBE_RTMP_URL', 'rtmp://a.rtmp.youtube.com/live2/')
+    
+    def reset_rtmp_url(self, chat_id: int) -> None:
+        """Reset RTMP URL to default for a chat"""
+        self.rtmp_urls.pop(chat_id, None)
+        logger.info(f"RTMP URL reset to default for chat {chat_id}")
+    
+    def remove_file(self, chat_id: int, file_index: int) -> Optional[str]:
+        """Remove a file from the chat's library by index"""
+        files = self.files.get(chat_id, [])
+        if 0 <= file_index < len(files):
+            removed = files.pop(file_index)
+            logger.info(f"Removed file {removed} from chat {chat_id}")
+            return removed
+        return None
+    
+    def get_current_file_index(self, chat_id: int) -> int:
+        """Get current playing file index"""
+        if chat_id in self.streams:
+            return self.streams[chat_id].get('current_file_index', 0)
+        return 0
+    
+    def set_current_file_index(self, chat_id: int, index: int) -> bool:
+        """Set current file index for switching"""
+        files = self.get_files(chat_id)
+        if 0 <= index < len(files):
+            if chat_id in self.streams:
+                self.streams[chat_id]['current_file_index'] = index
+            return True
+        return False
+    
+    async def switch_to_file(self, chat_id: int, file_index: int) -> bool:
+        """Switch to a specific file during live stream"""
+        files = self.get_files(chat_id)
+        if not (0 <= file_index < len(files)):
+            logger.error(f"Invalid file index {file_index} for chat {chat_id}")
+            return False
+        
+        if not self.is_streaming(chat_id):
+            # Just update the index if not streaming
+            return self.set_current_file_index(chat_id, file_index)
+        
+        # Mark restart requested and stop current stream
+        self._restart_requested[chat_id] = True
+        self.set_current_file_index(chat_id, file_index)
+        
+        # Stop current stream
+        await self.stop_stream(chat_id)
+        
+        # Restart with new file order
+        success = await self.start_stream(chat_id, start_index=file_index)
+        self._restart_requested.pop(chat_id, None)
+        
+        return success
+    
+    async def next_file(self, chat_id: int) -> bool:
+        """Skip to next file in playlist"""
+        files = self.get_files(chat_id)
+        if not files:
+            return False
+        
+        current_index = self.get_current_file_index(chat_id)
+        next_index = (current_index + 1) % len(files)
+        return await self.switch_to_file(chat_id, next_index)
+    
+    async def prev_file(self, chat_id: int) -> bool:
+        """Go to previous file in playlist"""
+        files = self.get_files(chat_id)
+        if not files:
+            return False
+        
+        current_index = self.get_current_file_index(chat_id)
+        prev_index = (current_index - 1) % len(files)
+        return await self.switch_to_file(chat_id, prev_index)
+    
+    async def start_stream(self, chat_id: int, start_index: int = 0) -> bool:
         """Start streaming for a chat"""
         if self.is_streaming(chat_id):
             logger.warning(f"Stream already active for chat {chat_id}")
@@ -65,12 +159,12 @@ class StreamManager:
             logger.error(f"No files available for chat {chat_id}")
             return False
         
-        # Get YouTube streaming configuration
-        stream_key = os.getenv('YOUTUBE_STREAM_KEY')
-        rtmp_url = os.getenv('YOUTUBE_RTMP_URL', 'rtmp://a.rtmp.youtube.com/live2/')
+        # Get YouTube streaming configuration (per-chat or from env)
+        stream_key = self.get_stream_key(chat_id)
+        rtmp_url = self.get_rtmp_url(chat_id)
         
         if not stream_key:
-            logger.error("YOUTUBE_STREAM_KEY not configured")
+            logger.error("No stream key configured for this chat")
             return False
         
         full_rtmp_url = f"{rtmp_url}{stream_key}"
@@ -92,7 +186,9 @@ class StreamManager:
         try:
             # Create FFmpeg command for looping and streaming
             # Use concat demuxer for smooth looping
-            concat_file = self._create_concat_file(chat_id, files)
+            # Reorder files to start from the specified index
+            ordered_files = files[start_index:] + files[:start_index]
+            concat_file = self._create_concat_file(chat_id, ordered_files)
             
             ffmpeg_cmd = [
                 'ffmpeg',
@@ -128,11 +224,11 @@ class StreamManager:
             self.streams[chat_id] = {
                 'started_at': datetime.now(),
                 'files': files.copy(),
-                'current_file_index': 0
+                'current_file_index': start_index
             }
             self.processes[chat_id] = process
             
-            logger.info(f"Started stream for chat {chat_id} with {len(files)} file(s)")
+            logger.info(f"Started stream for chat {chat_id} with {len(files)} file(s) starting at index {start_index}")
             
             # Start monitoring task
             asyncio.create_task(self._monitor_stream(chat_id))
@@ -211,6 +307,11 @@ class StreamManager:
             
             # Check if process is still running
             if process.poll() is not None:
+                # Check if this was a requested restart (e.g., for file switching)
+                if self._restart_requested.get(chat_id):
+                    logger.info(f"Stream stopped for chat {chat_id} due to requested switch")
+                    break
+                
                 logger.warning(f"Stream process died for chat {chat_id}, attempting restart...")
                 
                 # Clean up

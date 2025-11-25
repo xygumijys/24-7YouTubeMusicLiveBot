@@ -17,6 +17,10 @@ Works on **Render (Free)**, **Koyeb**, and **Railway** ☁️
 - **Auto-Restart**: Automatically restarts if the stream fails
 - **High Quality**: Supports 1080p streaming with customizable bitrate
 - **Multiple Formats**: Supports MP4, MKV, MP3, WAV, and more
+- **🆕 Set Stream Key via Bot**: Configure YouTube stream key directly through Telegram
+- **🆕 Live Video/Audio Switching**: Switch between files during live stream (StreamYard-like)
+- **🆕 Per-Chat Stream Keys**: Each Telegram group can have its own stream key
+- **🆕 Playlist Control**: Skip, previous, switch tracks during live stream
 
 ## 📋 Requirements
 
@@ -121,7 +125,7 @@ Works on **Render (Free)**, **Koyeb**, and **Railway** ☁️
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `TELEGRAM_BOT_TOKEN` | Your Telegram bot token | - | ✅ Yes |
-| `YOUTUBE_STREAM_KEY` | Your YouTube stream key | - | ✅ Yes |
+| `YOUTUBE_STREAM_KEY` | Your YouTube stream key (can also set via `/setkey`) | - | No* |
 | `YOUTUBE_RTMP_URL` | YouTube RTMP URL | `rtmp://a.rtmp.youtube.com/live2/` | No |
 | `VIDEO_BITRATE` | Video bitrate | `2500k` | No |
 | `AUDIO_BITRATE` | Audio bitrate | `128k` | No |
@@ -129,6 +133,8 @@ Works on **Render (Free)**, **Koyeb**, and **Railway** ☁️
 | `FPS` | Frames per second | `30` | No |
 | `ADMIN_USER_IDS` | Comma-separated admin IDs | - | No |
 | `STORAGE_PATH` | File storage path | `./storage/` | No |
+
+*Note: Stream key can be set via environment variable OR using the `/setkey` command in Telegram. The bot command takes precedence and allows per-chat configuration.
 
 ### Video Quality Settings
 
@@ -168,15 +174,31 @@ FPS=24
 - `/status` - Check stream status
 - `/list` - List all uploaded files
 
+### Stream Key Commands (NEW!)
+
+- `/setkey <key>` - Set YouTube stream key via Telegram
+- `/setrtmp <url>` - Set custom RTMP URL (default: YouTube)
+- `/showkey` - Show current stream key (masked for security)
+
+### Live Control Commands (StreamYard-like features!)
+
+- `/switch <number>` - Switch to a specific file during live stream
+- `/next` - Skip to next file in playlist
+- `/prev` - Go to previous file in playlist
+- `/nowplaying` - Show currently playing file
+- `/remove <number>` - Remove a file from playlist
+
 ### Usage Flow
 
 1. **Start the bot**: Send `/start` to your bot
-2. **Upload files**: 
+2. **Set stream key**: Use `/setkey <your_youtube_stream_key>`
+3. **Upload files**: 
    - Send video/audio files directly
    - OR use `/add_gdrive <google_drive_link>`
-3. **Start streaming**: Send `/stream`
-4. **Check status**: Send `/status` anytime
-5. **Stop streaming**: Send `/stop` when done
+4. **Start streaming**: Send `/stream`
+5. **Control playback**: Use `/next`, `/prev`, or `/switch` to change content
+6. **Check status**: Send `/status` or `/nowplaying` anytime
+7. **Stop streaming**: Send `/stop` when done
 
 ## 🎯 Use Cases
 
@@ -192,6 +214,9 @@ Upload a single video or multiple videos to loop them continuously.
 ### Study/Work Music
 Stream lo-fi, jazz, or ambient music for your audience.
 
+### Live DJ/VJ Sessions
+Use the live switching feature to change tracks like a DJ during your stream!
+
 ## 🔐 Admin Access
 
 By default, anyone can use your bot. To restrict access:
@@ -206,13 +231,14 @@ You can run multiple independent streams:
 
 1. Create different Telegram groups
 2. Add your bot to each group
-3. Each group maintains its own file library
-4. Each group can stream independently
+3. Set a unique stream key for each group using `/setkey`
+4. Each group maintains its own file library
+5. Each group can stream independently to different YouTube channels
 
 Example:
-- **Group 1**: Music stream
-- **Group 2**: Podcast stream
-- **Group 3**: Video loop stream
+- **Group 1**: Music stream → YouTube Channel A (set with `/setkey key_a`)
+- **Group 2**: Podcast stream → YouTube Channel B (set with `/setkey key_b`)
+- **Group 3**: Video loop stream → YouTube Channel C (set with `/setkey key_c`)
 
 ## 🐛 Troubleshooting
 
@@ -222,6 +248,8 @@ Example:
 - Check logs for error messages
 
 ### Stream Not Starting
+- Check stream key with `/showkey`
+- Set stream key with `/setkey` if not configured
 - Verify your `YOUTUBE_STREAM_KEY` is correct
 - Make sure YouTube Live streaming is enabled on your channel
 - Check if FFmpeg is installed (run `ffmpeg -version`)
