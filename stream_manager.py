@@ -75,6 +75,11 @@ class StreamManager:
         """Get RTMP URL for a chat"""
         return self.rtmp_urls.get(chat_id) or os.getenv('YOUTUBE_RTMP_URL', 'rtmp://a.rtmp.youtube.com/live2/')
     
+    def reset_rtmp_url(self, chat_id: int) -> None:
+        """Reset RTMP URL to default for a chat"""
+        self.rtmp_urls.pop(chat_id, None)
+        logger.info(f"RTMP URL reset to default for chat {chat_id}")
+    
     def remove_file(self, chat_id: int, file_index: int) -> Optional[str]:
         """Remove a file from the chat's library by index"""
         files = self.files.get(chat_id, [])

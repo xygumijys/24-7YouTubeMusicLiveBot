@@ -241,7 +241,12 @@ async def stream_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         success = await stream_manager.start_stream(chat_id)
         if success:
-            current_file = os.path.basename(files[stream_manager.get_current_file_index(chat_id)])
+            current_index = stream_manager.get_current_file_index(chat_id)
+            # Ensure index is within bounds
+            if 0 <= current_index < len(files):
+                current_file = os.path.basename(files[current_index])
+            else:
+                current_file = os.path.basename(files[0]) if files else "Unknown"
             await update.message.reply_text(
                 "✅ Stream started successfully!\n"
                 f"📺 Streaming {len(files)} file(s) in loop.\n"
@@ -428,7 +433,7 @@ async def setrtmp_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     chat_id = update.effective_chat.id
     
     if rtmp_url.lower() == 'default':
-        stream_manager.rtmp_urls.pop(chat_id, None)
+        stream_manager.reset_rtmp_url(chat_id)
         await update.message.reply_text(
             "✅ RTMP URL reset to default!\n"
             "📡 URL: rtmp://a.rtmp.youtube.com/live2/"
@@ -605,6 +610,9 @@ async def nowplaying_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     
     current_index = stream_manager.get_current_file_index(chat_id)
+    # Ensure index is within bounds
+    if not (0 <= current_index < len(files)):
+        current_index = 0
     current_file = os.path.basename(files[current_index])
     
     status = "🟢 Streaming" if stream_manager.is_streaming(chat_id) else "🔴 Not streaming"
