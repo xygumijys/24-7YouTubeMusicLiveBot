@@ -132,8 +132,9 @@ After deployment, your health check URL will be:
    FPS = 30
    STORAGE_PATH = /tmp/storage/
    ADMIN_USER_IDS = your_telegram_user_id
-   PORT = 10000
    ```
+   
+   Note: Render automatically sets the PORT environment variable for web services.
 
 6. **Deploy**
    - Click "Create Web Service"

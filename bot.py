@@ -721,20 +721,24 @@ async def root(request: web.Request) -> web.Response:
 
 async def run_web_server() -> None:
     """Start the web server for uptime monitoring"""
-    port = int(os.getenv('PORT', os.getenv('WEB_PORT', '8080')))
+    # Get port from environment - Render uses PORT, we also support WEB_PORT as fallback
+    port = int(os.getenv('PORT', '8080'))
     
     app = web.Application()
     app.router.add_get('/', root)
     app.router.add_get('/health', health_check)
     app.router.add_get('/ping', ping)
     
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', port)
-    await site.start()
-    
-    logger.info(f"Web server started on port {port} for uptime monitoring")
-    logger.info(f"Health check available at http://0.0.0.0:{port}/health")
+    try:
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, '0.0.0.0', port)
+        await site.start()
+        logger.info(f"Web server started on port {port} for uptime monitoring")
+        logger.info(f"Health check available at http://0.0.0.0:{port}/health")
+    except OSError as e:
+        logger.error(f"Failed to start web server on port {port}: {e}")
+        logger.warning("Bot will continue without web server - uptime monitoring unavailable")
 
 
 def main() -> None:

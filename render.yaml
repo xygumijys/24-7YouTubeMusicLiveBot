@@ -26,5 +26,3 @@ services:
         value: ""
       - key: PYTHONUNBUFFERED
         value: "1"
-      - key: PORT
-        value: "10000"
