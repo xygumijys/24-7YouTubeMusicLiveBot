@@ -4,10 +4,84 @@ This guide provides detailed instructions for deploying the 24/7 YouTube Music L
 
 ## Table of Contents
 
+- [24/7 Uptime Setup (Important!)](#247-uptime-setup-important)
 - [Render Deployment](#render-deployment)
 - [Railway Deployment](#railway-deployment)
 - [Koyeb Deployment](#koyeb-deployment)
 - [Docker Deployment](#docker-deployment)
+
+## 24/7 Uptime Setup (Important!)
+
+Free tier cloud platforms (Render, Koyeb, Railway) may put your service to sleep after a period of inactivity. This bot includes a built-in health check endpoint to keep it alive 24/7.
+
+### How It Works
+
+The bot runs a lightweight web server with health check endpoints:
+- `/` - Root endpoint showing bot status
+- `/health` - Health check endpoint (JSON response with uptime)
+- `/ping` - Simple ping endpoint for keep-alive services
+
+### Setting Up 24/7 Uptime
+
+#### Option 1: Use UptimeRobot (Free - Recommended)
+
+1. **Create an Account**
+   - Visit https://uptimerobot.com
+   - Sign up for a free account
+
+2. **Add New Monitor**
+   - Click "Add New Monitor"
+   - Monitor Type: HTTP(s)
+   - Friendly Name: `YouTube Live Bot`
+   - URL: `https://your-app-name.onrender.com/health`
+   - Monitoring Interval: 5 minutes
+   - Click "Create Monitor"
+
+3. **That's it!** UptimeRobot will ping your bot every 5 minutes, preventing it from sleeping.
+
+#### Option 2: Use Freshping (Free)
+
+1. Visit https://www.freshworks.com/website-monitoring/
+2. Sign up for a free account
+3. Add your health check URL: `https://your-app-name.onrender.com/health`
+4. Set check interval to 1-5 minutes
+
+#### Option 3: Use Cron-Job.org (Free)
+
+1. Visit https://cron-job.org
+2. Create a free account
+3. Create a new cron job:
+   - URL: `https://your-app-name.onrender.com/ping`
+   - Schedule: Every 5 minutes
+   - Request Method: GET
+
+#### Option 4: Use Better Stack (Free Tier Available)
+
+1. Visit https://betterstack.com/uptime
+2. Create a free account
+3. Add a new monitor with your health check URL
+
+### Platform-Specific URLs
+
+After deployment, your health check URL will be:
+
+| Platform | Health Check URL |
+|----------|-----------------|
+| Render | `https://your-app-name.onrender.com/health` |
+| Railway | `https://your-app-name.up.railway.app/health` |
+| Koyeb | `https://your-app-name.koyeb.app/health` |
+
+### Verify It's Working
+
+1. Open your health check URL in a browser
+2. You should see a JSON response like:
+   ```json
+   {
+     "status": "healthy",
+     "uptime": "2h 30m 15s",
+     "message": "24/7 YouTube Music Live Bot is running!"
+   }
+   ```
 
 ## Render Deployment
 
@@ -59,13 +133,19 @@ This guide provides detailed instructions for deploying the 24/7 YouTube Music L
    STORAGE_PATH = /tmp/storage/
    ADMIN_USER_IDS = your_telegram_user_id
    ```
+   
+   Note: Render automatically sets the PORT environment variable for web services.
 
 6. **Deploy**
    - Click "Create Web Service"
    - Wait for deployment to complete (5-10 minutes)
-   - Check logs for "Bot started successfully!"
+   - Check logs for "Bot started successfully!" and "Web server started on port"
 
-7. **Test Your Bot**
+7. **Set Up Uptime Monitoring**
+   - Copy your Render URL (e.g., `https://youtube-live-bot.onrender.com`)
+   - Follow the [24/7 Uptime Setup](#247-uptime-setup-important) section above
+
+8. **Test Your Bot**
    - Open Telegram
    - Search for your bot
    - Send `/start`
@@ -74,11 +154,11 @@ This guide provides detailed instructions for deploying the 24/7 YouTube Music L
 
 ### Render-Specific Tips
 
-- **Auto-Sleep**: Free tier sleeps after 15 minutes of inactivity
-- **Wake-Up**: Bot automatically wakes when you send a message
+- **Health Check**: The built-in health check at `/health` keeps the service active
+- **Uptime Monitoring**: Use UptimeRobot or similar to ping `/health` every 5 minutes
+- **Free Hours**: 750 hours/month (enough for 24/7)
 - **Logs**: View logs in Render dashboard → your service → Logs
 - **Restart**: Manual restart available in dashboard
-- **Free Hours**: 750 hours/month (enough for 24/7 with sleep)
 
 ## Railway Deployment
 
@@ -113,6 +193,7 @@ This guide provides detailed instructions for deploying the 24/7 YouTube Music L
    VIDEO_RESOLUTION = 1920x1080
    FPS = 30
    STORAGE_PATH = /tmp/storage/
+   PORT = 8080
    ```
 
 4. **Configure Build**
@@ -124,11 +205,16 @@ This guide provides detailed instructions for deploying the 24/7 YouTube Music L
    - Railway automatically deploys
    - Monitor logs for successful start
 
+6. **Set Up Uptime Monitoring (Optional)**
+   - Copy your Railway URL (e.g., `https://your-app.up.railway.app`)
+   - Follow the [24/7 Uptime Setup](#247-uptime-setup-important) section
+
 ### Railway-Specific Tips
 
+- **Health Check**: Access `/health` endpoint to verify bot status
 - **Free Credit**: $5/month free credit
 - **Resource Usage**: Monitor usage in dashboard
-- **Always-On**: No sleep on free tier
+- **Always-On**: Railway keeps services running
 - **Logs**: Real-time logs available
 
 ## Koyeb Deployment
@@ -156,31 +242,42 @@ This guide provides detailed instructions for deploying the 24/7 YouTube Music L
    - **Build command**: `bash install.sh`
    - **Run command**: `python bot.py`
    - **Instance type**: Nano (free)
+   - **Port**: 8080
 
 4. **Set Environment Variables**
    
    Add in the Environment Variables section:
    
    ```
-   TELEGRAM_BOT_TOKEN
-   YOUTUBE_STREAM_KEY
-   YOUTUBE_RTMP_URL
-   VIDEO_BITRATE
-   AUDIO_BITRATE
-   VIDEO_RESOLUTION
-   FPS
-   STORAGE_PATH
+   TELEGRAM_BOT_TOKEN = your_bot_token
+   YOUTUBE_STREAM_KEY = your_stream_key
+   YOUTUBE_RTMP_URL = rtmp://a.rtmp.youtube.com/live2/
+   VIDEO_BITRATE = 2500k
+   AUDIO_BITRATE = 128k
+   VIDEO_RESOLUTION = 1920x1080
+   FPS = 30
+   STORAGE_PATH = /tmp/storage/
+   PORT = 8080
    ```
 
-5. **Deploy**
+5. **Configure Health Check**
+   - Health Check Path: `/health`
+   - This keeps your service alive and healthy
+
+6. **Deploy**
    - Click "Deploy"
    - Wait for deployment
 
+7. **Set Up Uptime Monitoring (Optional)**
+   - Copy your Koyeb URL (e.g., `https://your-app.koyeb.app`)
+   - Follow the [24/7 Uptime Setup](#247-uptime-setup-important) section
+
 ### Koyeb-Specific Tips
 
+- **Health Check**: Built-in `/health` endpoint for monitoring
 - **Free Tier**: 512MB RAM instance
 - **Scaling**: Automatic scaling available
-- **Health Checks**: Configure in settings
+- **Uptime**: Use external monitoring for guaranteed 24/7 uptime
 
 ## Docker Deployment
 

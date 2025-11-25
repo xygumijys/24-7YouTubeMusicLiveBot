@@ -274,19 +274,29 @@ Example:
 
 ### Render Free Tier
 - **750 hours/month** of runtime (enough for 24/7)
-- Spins down after 15 minutes of inactivity
-- Auto-wakes on Telegram message
+- Built-in health check endpoint at `/health`
+- Use external monitoring (UptimeRobot) to prevent sleep mode
 - Free forever!
 
 ### Railway Free Tier
 - **500 hours/month** of runtime
 - $5 free credit monthly
-- Always-on service
+- Health check available at `/health`
 
 ### Koyeb Free Tier
 - **512MB RAM** free instance
 - Limited to 1 service
-- Automatic scaling
+- Health check at `/health` for uptime monitoring
+
+### 🔔 24/7 Uptime Tip
+
+To keep your bot running 24/7 on free tier platforms:
+1. Set up a free account on [UptimeRobot](https://uptimerobot.com)
+2. Add a monitor for `https://your-app-url/health`
+3. Set monitoring interval to 5 minutes
+4. Your bot will never sleep!
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed setup instructions.
 
 ## 🤝 Contributing
 

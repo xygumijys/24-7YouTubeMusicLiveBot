@@ -1,9 +1,10 @@
 services:
-  - type: worker
+  - type: web
     name: youtube-live-bot
     runtime: python
     buildCommand: bash install.sh
     startCommand: python bot.py
+    healthCheckPath: /health
     envVars:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
